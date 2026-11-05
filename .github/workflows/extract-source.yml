@@ -1,0 +1,46 @@
+name: Build Real SEVANEX App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extract Source ZIP
+        run: |
+          mkdir source
+          unzip -q SEVANEX_MVP_Starter.zip -d source
+
+      - name: Build Real App
+        run: |
+          cd source/SEVANEX_MVP
+          flutter create --platforms=android --project-name sevanex .
+          flutter pub get
+          flutter build apk --debug
+
+      - name: Upload SEVANEX APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SEVANEX-REAL-APK
+          path: source/SEVANEX_MVP/build/app/outputs/flutter-apk/app-debug.apk

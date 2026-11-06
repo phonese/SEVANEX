@@ -1,4 +1,4 @@
-name: Build Real SEVANEX App
+name: Build SEVANEX APK
 
 on:
   workflow_dispatch:
@@ -11,7 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,20 +26,17 @@ jobs:
         with:
           channel: stable
 
-      - name: Extract Source ZIP
-        run: |
-          mkdir source
-          unzip -q SEVANEX_MVP_Starter.zip -d source
+      - name: Create Android project
+        run: flutter create --platforms=android --project-name sevanex .
 
-      - name: Build Real App
-        run: |
-          cd source/SEVANEX_MVP
-          flutter create --platforms=android --project-name sevanex .
-          flutter pub get
-          flutter build apk --debug
+      - name: Get dependencies
+        run: flutter pub get
 
-      - name: Upload SEVANEX APK
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SEVANEX-REAL-APK
-          path: source/SEVANEX_MVP/build/app/outputs/flutter-apk/app-debug.apk
+          name: SEVANEX-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk

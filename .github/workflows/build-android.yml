@@ -103,7 +103,8 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze
+  run: flutter analyze
+
 
       - name: Build signed release APK
         run: flutter build apk --release

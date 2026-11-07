@@ -198,6 +198,51 @@ class CustomerPage extends StatelessWidget {
   );
 }
 
+class BookingRequest {
+  final String id;
+  final String service;
+  final String customerName;
+  final String phone;
+  final String address;
+  final String description;
+  final DateTime createdAt;
+
+  BookingRequest({
+    required this.id,
+    required this.service,
+    required this.customerName,
+    required this.phone,
+    required this.address,
+    required this.description,
+    required this.createdAt,
+  });
+}
+
+class BookingStore {
+  BookingStore._();
+  static final List<BookingRequest> requests = [];
+
+  static BookingRequest add({
+    required String service,
+    required String customerName,
+    required String phone,
+    required String address,
+    required String description,
+  }) {
+    final request = BookingRequest(
+      id: 'SVX-${DateTime.now().millisecondsSinceEpoch}',
+      service: service,
+      customerName: customerName,
+      phone: phone,
+      address: address,
+      description: description,
+      createdAt: DateTime.now(),
+    );
+    requests.insert(0, request);
+    return request;
+  }
+}
+
 class BookingPage extends StatefulWidget {
   final String service;
   const BookingPage({super.key, required this.service});
@@ -206,40 +251,99 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
+  final customerName = TextEditingController();
+  final phone = TextEditingController();
   final details = TextEditingController();
   final address = TextEditingController();
-  bool submitted = false;
+  final formKey = GlobalKey<FormState>();
+  BookingRequest? createdBooking;
 
   @override
-  void dispose() { details.dispose(); address.dispose(); super.dispose(); }
+  void dispose() {
+    customerName.dispose();
+    phone.dispose();
+    details.dispose();
+    address.dispose();
+    super.dispose();
+  }
+
+  void submitBooking() {
+    if (createdBooking != null) return;
+    if (!(formKey.currentState?.validate() ?? false)) return;
+    FocusScope.of(context).unfocus();
+    final booking = BookingStore.add(
+      service: widget.service,
+      customerName: customerName.text.trim(),
+      phone: phone.text.trim(),
+      address: address.text.trim(),
+      description: details.text.trim(),
+    );
+    setState(() => createdBooking = booking);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('आपका बुकिंग अनुरोध सफलतापूर्वक दर्ज हो गया।')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('बुकिंग अनुरोध')),
-    body: ListView(padding: const EdgeInsets.all(18), children: [
-      Text(widget.service, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: navy)),
-      const SizedBox(height: 14),
-      TextField(controller: details, maxLines: 3, decoration: const InputDecoration(labelText: 'अपनी समस्या बताएँ', border: OutlineInputBorder(), alignLabelWithHint: true)),
-      const SizedBox(height: 12),
-      TextField(controller: address, maxLines: 2, decoration: const InputDecoration(labelText: 'पूरा पता / लोकेशन', border: OutlineInputBorder())),
-      const SizedBox(height: 18),
-      FilledButton.icon(
-        onPressed: () {
-          if (address.text.trim().isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('कृपया अपना पता लिखें।')));
-            return;
-          }
-          setState(() => submitted = true);
-        },
-        icon: const Icon(Icons.send),
-        label: const Text('डेमो बुकिंग अनुरोध भेजें'),
-      ),
-      if (submitted) ...[
-        const SizedBox(height: 16),
-        Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xFFE7F7EF), borderRadius: BorderRadius.circular(14)),
-          child: const Text('डेमो अनुरोध तैयार है। लाइव बुकिंग, पार्टनर असाइनमेंट और SMS/पुश नोटिफिकेशन backend जुड़ने के बाद चालू होंगे.', style: TextStyle(color: Color(0xFF176B42)))),
-      ],
-    ]),
+    body: Form(
+      key: formKey,
+      child: ListView(padding: const EdgeInsets.all(18), children: [
+        Text(widget.service, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: navy)),
+        const SizedBox(height: 6),
+        const Text('अपनी जानकारी भरें। अनुरोध Partner Dashboard में दिखाई देगा।', style: TextStyle(color: Colors.black54, fontSize: 13)),
+        const SizedBox(height: 18),
+        TextFormField(
+          controller: customerName,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'आपका नाम *', prefixIcon: Icon(Icons.person_outline), border: OutlineInputBorder()),
+          validator: (value) => (value == null || value.trim().isEmpty) ? 'कृपया अपना नाम लिखें।' : null,
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: phone,
+          keyboardType: TextInputType.phone,
+          maxLength: 10,
+          decoration: const InputDecoration(labelText: 'मोबाइल नंबर *', prefixIcon: Icon(Icons.phone_outlined), border: OutlineInputBorder(), counterText: ''),
+          validator: (value) => (value == null || !RegExp(r'^[6-9][0-9]{9}$').hasMatch(value.trim())) ? '10 अंकों का सही मोबाइल नंबर लिखें।' : null,
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: details,
+          maxLines: 3,
+          decoration: const InputDecoration(labelText: 'सर्विस की समस्या बताएँ', alignLabelWithHint: true, border: OutlineInputBorder()),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: address,
+          maxLines: 2,
+          decoration: const InputDecoration(labelText: 'पूरा पता / लोकेशन *', prefixIcon: Icon(Icons.location_on_outlined), border: OutlineInputBorder()),
+          validator: (value) => (value == null || value.trim().isEmpty) ? 'कृपया पूरा पता लिखें।' : null,
+        ),
+        const SizedBox(height: 18),
+        FilledButton.icon(
+          onPressed: createdBooking == null ? submitBooking : null,
+          icon: const Icon(Icons.send),
+          label: const Text('बुकिंग अनुरोध भेजें'),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+        ),
+        if (createdBooking != null) ...[
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: const Color(0xFFE7F7EF), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFB8E5CC))),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Row(children: [Icon(Icons.check_circle, color: Color(0xFF176B42)), SizedBox(width: 8), Text('बुकिंग दर्ज हो गई!', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF176B42)))]),
+              const SizedBox(height: 8),
+              Text('Booking ID: ${createdBooking!.id}', style: const TextStyle(fontWeight: FontWeight.w800, color: navy)),
+              const SizedBox(height: 4),
+              const Text('यह अनुरोध इस ऐप के Partner Dashboard में उपलब्ध है। अभी यह केवल इसी ऐप सेशन में सेव है; ऐप बंद करने पर डेटा सुरक्षित नहीं रहेगा।', style: TextStyle(fontSize: 12, color: Color(0xFF176B42))),
+            ]),
+          ),
+        ],
+      ]),
+    ),
   );
 }
 
@@ -259,12 +363,24 @@ class ProviderPage extends StatelessWidget {
         Expanded(child: MetricCard(label: 'पूरे काम', value: '4', icon: Icons.task_alt)),
       ]),
       const SizedBox(height: 18),
-      const Text('उपलब्ध काम (डेमो)', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: navy)),
+      const Text('बुकिंग अनुरोध', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: navy)),
       const SizedBox(height: 10),
-      const JobCard(title: 'किचन नल लीकेज', category: 'Plumbing', amount: '₹500', status: 'नया अनुरोध'),
-      const JobCard(title: 'सीलिंग फैन इंस्टॉलेशन', category: 'Electrical', amount: '₹350', status: 'उदाहरण'),
+      if (BookingStore.requests.isEmpty)
+        const Text('अभी कोई नई बुकिंग नहीं है। Customer ऐप से बुकिंग भेजने पर यहाँ दिखाई देगी।', style: TextStyle(fontSize: 13, color: Colors.black54))
+      else
+        ...BookingStore.requests.map((request) => Card(
+          color: Colors.white,
+          elevation: 0,
+          child: ListTile(
+            leading: const CircleAvatar(backgroundColor: Color(0xFFEAF3FC), child: Icon(Icons.work_outline, color: blue)),
+            title: Text(request.service, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text('${request.customerName} • ${request.phone}\n${request.address}\n${request.id}', maxLines: 3, overflow: TextOverflow.ellipsis),
+            isThreeLine: true,
+            trailing: const Text('नया', style: TextStyle(fontWeight: FontWeight.w800, color: blue)),
+          ),
+        )),
       const SizedBox(height: 12),
-      const Text('लाइव जॉब अलर्ट, KYC, बैंक वेरिफिकेशन और payout backend integration के अगले चरण में आएँगे.', style: TextStyle(fontSize: 12, color: Colors.black54)),
+      const Text('यह शुरुआती स्थानीय डेमो है। स्थायी सर्वर सेविंग, पार्टनर अलर्ट, KYC और payout अगले चरण में जोड़े जाएँगे।', style: TextStyle(fontSize: 12, color: Colors.black54)),
     ]),
   );
 }

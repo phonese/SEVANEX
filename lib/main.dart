@@ -168,5 +168,146 @@ class ProviderPage extends StatelessWidget {
   ]));
 }
 
-class ManagerPage extends StatelessWidget { const ManagerPage({super.key}); @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('City Manager')), body: const Center(child: Text('City Manager Dashboard • Demo'))); }
+
+class ManagerPage extends StatelessWidget {
+  const ManagerPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bookings = BookingStore.requests;
+
+    final totalServices =
+        bookings.map((b) => b.service).toSet().length;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('SEVANEX Admin Dashboard'),
+        backgroundColor: const Color(0xFF12304A),
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Welcome, Admin!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.book_online,
+                            size: 32,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${bookings.length}',
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text('Total Bookings'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.home_repair_service,
+                            size: 32,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$totalServices',
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text('Services'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            const Text(
+              'All Service Bookings',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            if (bookings.isEmpty)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: Text('No bookings available'),
+                  ),
+                ),
+              ),
+
+            ...bookings.map(
+              (b) => Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.build),
+                  ),
+                  title: Text(
+                    b.service,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text('Customer: ${b.name}'),
+                      Text('Phone: ${b.phone}'),
+                      Text('Address: ${b.address}'),
+                      Text('Booking ID: ${b.id}'),
+                    ],
+                  ),
+                  isThreeLine: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class MetricCard extends StatelessWidget { final String label, value; final IconData icon; const MetricCard({super.key, required this.label, required this.value, required this.icon}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4EBF1))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: blue), const SizedBox(height: 10), Text(value, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: navy)), Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54))])); }

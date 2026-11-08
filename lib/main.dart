@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Replace these two placeholders with your Supabase Project URL and
 /// anon/publishable key. NEVER put the service_role key in a mobile app.
-const supabaseUrl = 'https://qnddlauyiftfulxjknss.supabase.co/rest/v1/';
+const supabaseUrl = 'https://qnddlauyiftfulxjknss.supabase.co';
 const supabaseAnonKey = 'sb_publishable_TT4QdJKlaT3rXXfiI3wCJg_U9E931Td';
 
 const navy = Color(0xFF102C45);

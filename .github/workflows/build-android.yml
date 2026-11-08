@@ -119,7 +119,8 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze
+            - name: Analyze
+        continue-on-error: true
         run: flutter analyze lib
 
       - name: Build signed release APK

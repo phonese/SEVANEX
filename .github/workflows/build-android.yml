@@ -1,3 +1,4 @@
+
 name: Build signed SEVANEX APK
 
 on:
@@ -11,6 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -30,6 +32,10 @@ jobs:
       - name: Generate Android platform files
         run: flutter create --platforms=android --project-name sevanex .
 
+      - name: Use alternate Gradle download host
+        run: |
+          sed -i 's#services.gradle.org/distributions/#downloads.gradle.org/distributions/#' android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Configure permanent release signing
         env:
           KEYSTORE_B64: ${{ secrets.SEVANEX_KEYSTORE_BASE64 }}
@@ -38,7 +44,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.SEVANEX_KEY_ALIAS }}
         run: |
           if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
-            echo "Missing signing secrets. Add SEVANEX_KEYSTORE_BASE64, SEVANEX_STORE_PASSWORD, SEVANEX_KEY_PASSWORD and SEVANEX_KEY_ALIAS in GitHub repository Settings > Secrets and variables > Actions."
+            echo "Missing signing secrets"
             exit 1
           fi
           echo "$KEYSTORE_B64" | base64 --decode > android/app/sevanex-upload-key.jks
@@ -71,11 +77,16 @@ jobs:
               namespace = "com.example.sevanex"
               compileSdk = flutter.compileSdkVersion
               ndkVersion = flutter.ndkVersion
+
               compileOptions {
                   sourceCompatibility = JavaVersion.VERSION_17
                   targetCompatibility = JavaVersion.VERSION_17
               }
-              kotlinOptions { jvmTarget = JavaVersion.VERSION_17.toString() }
+
+              kotlinOptions {
+                  jvmTarget = JavaVersion.VERSION_17.toString()
+              }
+
               defaultConfig {
                   applicationId = "com.example.sevanex"
                   minSdk = flutter.minSdkVersion
@@ -83,6 +94,7 @@ jobs:
                   versionCode = flutter.versionCode
                   versionName = flutter.versionName
               }
+
               signingConfigs {
                   create("release") {
                       keyAlias = signingProperties["keyAlias"] as String?
@@ -91,20 +103,24 @@ jobs:
                       storePassword = signingProperties["storePassword"] as String?
                   }
               }
+
               buildTypes {
-                  release { signingConfig = signingConfigs.getByName("release") }
+                  release {
+                      signingConfig = signingConfigs.getByName("release")
+                  }
               }
           }
 
-          flutter { source = "../.." }
+          flutter {
+              source = "../.."
+          }
           GRADLE
 
       - name: Get dependencies
         run: flutter pub get
 
-          - name: Analyze
+      - name: Analyze
         run: flutter analyze lib
-
 
       - name: Build signed release APK
         run: flutter build apk --release

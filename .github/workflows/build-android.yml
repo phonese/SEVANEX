@@ -4,7 +4,8 @@ name: Build signed SEVANEX APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -47,7 +48,9 @@ jobs:
             echo "Missing signing secrets"
             exit 1
           fi
+
           echo "$KEYSTORE_B64" | base64 --decode > android/app/sevanex-upload-key.jks
+
           cat > android/key.properties <<PROPS
           storePassword=$STORE_PASSWORD
           keyPassword=$KEY_PASSWORD
@@ -69,6 +72,7 @@ jobs:
 
           val signingProperties = Properties()
           val signingPropertiesFile = rootProject.file("key.properties")
+
           if (signingPropertiesFile.exists()) {
               signingProperties.load(FileInputStream(signingPropertiesFile))
           }
@@ -119,9 +123,8 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-            - name: Analyze
-        continue-on-error: true
-        run: flutter analyze lib
+      - name: Analyze
+        run: flutter analyze lib --no-fatal-infos --no-fatal-warnings
 
       - name: Build signed release APK
         run: flutter build apk --release

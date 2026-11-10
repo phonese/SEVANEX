@@ -63,7 +63,7 @@ jobs:
           GRADLE
 
           sed -i 's#services.gradle.org/distributions/#downloads.gradle.org/distributions/#' android/gradle/wrapper/gradle-wrapper.properties
-          sed -i 's#gradle-[0-9.]*-all.zip#gradle-8.11.1-all.zip#' android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's#gradle-[0-9.]*-all.zip#gradle-8.14.3-all.zip#' android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Configure permanent release signing
         env:

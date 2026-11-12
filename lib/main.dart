@@ -1366,21 +1366,19 @@ TextButton(
   onPressed: () => updateJob(id, 'completed'),
   child: const Text('Complete'),
 ),
-                                    ],
+                                                                        ],
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        );
+                          );
                       }).toList(),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            );
+              );
   }
-                }
+}
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});

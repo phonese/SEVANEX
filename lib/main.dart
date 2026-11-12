@@ -1358,3 +1358,328 @@ class _ProviderPageState extends State<ProviderPage> {
                                 Wrap(
                                   children: [
       
+TextButton(
+  onPressed: () => updateJob(id, 'in_progress'),
+  child: const Text('In Progress'),
+),
+TextButton(
+  onPressed: () => updateJob(id, 'completed'),
+  child: const Text('Complete'),
+),
+],
+),
+],
+),
+),
+);
+}).toList(),
+],
+),
+),
+),
+);
+}
+}
+
+class AdminPage extends StatefulWidget {
+  const AdminPage({super.key});
+
+  @override
+  State<AdminPage> createState() => _AdminPageState();
+}
+
+class _AdminPageState extends State<AdminPage> {
+  bool loading = true;
+  String? error;
+  List<Map<String, dynamic>> bookings = [];
+  List<Map<String, dynamic>> partners = [];
+  final Map<int, String?> assignments = {};
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  Future<void> load() async {
+    if (mounted) setState(() => loading = true);
+
+    try {
+      bookings = List<Map<String, dynamic>>.from(
+        await supabase
+            .from('bookings')
+            .select()
+            .order('created_at', ascending: false),
+      );
+
+      partners = List<Map<String, dynamic>>.from(
+        await supabase
+            .from('provider_profiles')
+            .select()
+            .order('created_at', ascending: false),
+      );
+
+      error = null;
+    } catch (e) {
+      error = 'Admin data लोड नहीं हुआ: $e';
+    }
+
+    if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> approve(String uid) async {
+    try {
+      await supabase
+          .from('provider_profiles')
+          .update({
+            'kyc_status': 'approved',
+          })
+          .eq('id', uid);
+
+      await load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Approval नहीं हुआ: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> assign(int bookingId, String uid) async {
+    try {
+      await supabase
+          .from('bookings')
+          .update({
+            'provider_id': uid,
+            'status': 'requested',
+          })
+          .eq('id', bookingId);
+
+      await load();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Partner assign हो गया।'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Assign नहीं हुआ: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> updateStatus(int id, String value) async {
+    try {
+      await supabase
+          .from('bookings')
+          .update({'status': value})
+          .eq('id', id);
+
+      await load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Status नहीं बदला: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('SEVANEX Admin'),
+        actions: [
+          IconButton(
+            onPressed: load,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: load,
+              child: ListView(
+                padding: const EdgeInsets.all(14),
+                children: [
+                  if (error != null)
+                    Text(
+                      error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+
+                  Text(
+                    'Partner Applications (${partners.length})',
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      color: navy,
+                    ),
+                  ),
+
+                  if (partners.isEmpty)
+                    const Text('अभी कोई Partner आवेदन नहीं है।'),
+
+                  ...partners.map((p) {
+                    final uid = p['id'].toString();
+                    final approved = p['kyc_status'] == 'approved';
+
+                    return Card(
+                      color: Colors.white,
+                      child: ListTile(
+                        isThreeLine: true,
+                        title: Text(
+                          p['business_name']?.toString() ?? 'Partner',
+                        ),
+                        subtitle: Text(
+                          '${p['full_name'] ?? ''}\n'
+                          'मोबाइल: ${p['phone'] ?? ''}\n'
+                          'स्थिति: ${p['kyc_status']}',
+                        ),
+                        trailing: approved
+                            ? const Icon(
+                                Icons.verified,
+                                color: Colors.green,
+                              )
+                            : TextButton(
+                                onPressed: () => approve(uid),
+                                child: const Text('Approve'),
+                              ),
+                      ),
+                    );
+                  }),
+
+                  const SizedBox(height: 18),
+
+                  Text(
+                    'Bookings (${bookings.length})',
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      color: navy,
+                    ),
+                  ),
+
+                  if (bookings.isEmpty)
+                    const Text('अभी कोई Booking नहीं है।'),
+
+                  ...bookings.map((b) {
+                    final id = (b['id'] as num).toInt();
+
+                    final eligible = partners.where((p) {
+                      return p['kyc_status'] == 'approved';
+                    }).toList();
+
+                    final currentProvider =
+                        b['provider_id']?.toString();
+
+                    final selectedProvider =
+                        assignments[id] ?? currentProvider;
+
+                    final validSelection = eligible.any(
+                      (p) => p['id'].toString() == selectedProvider,
+                    );
+
+                    return Card(
+                      color: Colors.white,
+                      margin: const EdgeInsets.only(top: 9),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Booking #$id',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: navy,
+                              ),
+                            ),
+                            Text(
+                              'Customer: ${b['customer_id']}',
+                            ),
+                            Text(
+                              'Category: ${b['category_id']}'
+                              ' • City: ${b['city_id']}',
+                            ),
+                            Text('पता: ${b['address']}'),
+                            Text('काम: ${b['description']}'),
+                            Text('स्थिति: ${b['status']}'),
+
+                            if (eligible.isNotEmpty)
+                              DropdownButtonFormField<String>(
+                                value: validSelection
+                                    ? selectedProvider
+                                    : null,
+                                decoration: const InputDecoration(
+                                  labelText: 'Approved Partner चुनें',
+                                ),
+                                items: eligible.map((p) {
+                                  return DropdownMenuItem<String>(
+                                    value: p['id'].toString(),
+                                    child: Text(
+                                      p['business_name'].toString(),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (v) {
+                                  setState(() {
+                                    assignments[id] = v;
+                                  });
+                                },
+                              ),
+
+                            if (eligible.isNotEmpty)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: assignments[id] == null
+                                      ? null
+                                      : () => assign(
+                                            id,
+                                            assignments[id]!,
+                                          ),
+                                  child: const Text('Assign Partner'),
+                                ),
+                              ),
+
+                            Wrap(
+                              spacing: 6,
+                              children: [
+                                TextButton(
+                                  onPressed: () =>
+                                      updateStatus(id, 'in_progress'),
+                                  child: const Text('In Progress'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      updateStatus(id, 'completed'),
+                                  child: const Text('Complete'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      updateStatus(id, 'cancelled'),
+                                  child: const Text('Cancel'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+    );
+  }
+}
+                  
